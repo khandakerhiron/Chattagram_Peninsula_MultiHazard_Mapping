@@ -172,12 +172,10 @@ Demographic and literacy data at Upazila level sourced from:
 📦 chattagram-multihazard-mapping
  ┣ 📜 README.md
  ┣ 📂 GEE_Scripts
- ┃ ┣ 📜 landslide_susceptibility.js
- ┃ ┣ 📜 flood_risk.js
- ┃ ┗ 📜 interactive_app.js
+ ┃ ┣ 📜 GEEMap.js
  ┣ 📂 AHP
- ┃ ┣ 📜 AHP_Landslide.xlsx
- ┃ ┗ 📜 AHP_Flood.xlsx
+ ┃ ┣ 📜 AHP_Landslide.png
+ ┃ ┗ 📜 AHP_Flood.png
  ┣ 📂 Data
  ┃ ┗ 📜 Census2022_Upazila_Data.xlsx
  ┗ 📂 Outputs
