@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chattagram Peninsula Multi-Hazard Mapping</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,300&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #050d1a;
+      --surface:   #0b1929;
+      --surface2:  #0f2235;
+      --border:    rgba(0,200,255,0.12);
+      --cyan:      #00c8ff;
+      --cyan-dim:  rgba(0,200,255,0.15);
+      --green:     #22d984;
+      --orange:    #ff7b3a;
+      --red:       #ff3d5a;
+      --text:      #e8f4ff;
+      --text-muted:#7aa0bc;
+      --font-head: 'Roboto', sans-serif;
+      --font-body: 'Roboto', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND GRID ──────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GLOW BLOBS ───────────────────────────────────────── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+    .blob-1 { width: 600px; height: 600px; background: #004aad; top: -200px; left: -200px; }
+    .blob-2 { width: 500px; height: 500px; background: #00c8ff; bottom: -150px; right: -100px; }
+    .blob-3 { width: 350px; height: 350px; background: #22d984; top: 40%; left: 55%; }
+
+    /* ── WRAPPER ──────────────────────────────────────────── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* ── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5,13,26,0.85);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 62px;
+    }
+
+    .nav-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      color: var(--cyan);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo span { color: var(--text); }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--cyan); }
+
+    /* ── HERO ─────────────────────────────────────────────── */
+    .hero {
+      padding: 90px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--cyan-dim);
+      border: 1px solid rgba(0,200,255,0.3);
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(1.4); }
+    }
+
+    .hero h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 36px;
+      font-weight: 300;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 26px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.25s ease;
+    }
+
+    .btn-primary {
+      background: var(--cyan);
+      color: #050d1a;
+      font-weight: 700;
+      box-shadow: 0 0 28px rgba(0,200,255,0.3);
+    }
+
+    .btn-primary:hover {
+      background: #33d4ff;
+      box-shadow: 0 0 42px rgba(0,200,255,0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      transform: translateY(-2px);
+    }
+
+    .dev-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--orange);
+      background: rgba(255,123,58,0.1);
+      border: 1px solid rgba(255,123,58,0.25);
+      padding: 5px 14px;
+      border-radius: 6px;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+
+    /* ── STAT STRIP ───────────────────────────────────────── */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 50px 0;
+      animation: fadeUp 0.6s 0.5s ease both;
+    }
+
+    .stat-item {
+      background: var(--surface);
+      padding: 26px 20px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    .stat-item:hover { background: var(--surface2); }
+
+    .stat-num {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--cyan);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── MAP EMBED SECTION ────────────────────────────────── */
+    #map {
+      padding: 20px 0 70px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 600px;
+      margin-bottom: 28px;
+    }
+
+    .map-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,200,255,0.06);
+      transition: box-shadow 0.3s;
+    }
+
+    .map-card:hover {
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,200,255,0.18);
+    }
+
+    .map-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .map-dots { display: flex; gap: 7px; }
+
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #28ca41; }
+
+    .map-url {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: monospace;
+      background: rgba(0,200,255,0.05);
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      max-width: 420px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .map-open-btn {
+      font-size: 12px;
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: opacity 0.2s;
+    }
+
+    .map-open-btn:hover { opacity: 0.75; }
+
+    .map-frame-wrap {
+      position: relative;
+      width: 100%;
+      padding-bottom: 62%;
+      background: #050d1a;
+    }
+
+    .map-frame-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .map-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--surface);
+      z-index: 2;
+      transition: opacity 0.5s;
+      pointer-events: none;
+    }
+
+    .map-loading.hidden { opacity: 0; }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── METHODS SECTION ──────────────────────────────────── */
+    #methods { padding: 70px 0; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 36px;
+    }
+
+    .method-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .method-card:hover {
+      border-color: rgba(0,200,255,0.3);
+      transform: translateY(-3px);
+    }
+
+    .method-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .method-card h3 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--cyan);
+    }
+
+    .layer-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .layer-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .layer-list li::before {
+      content: '▸';
+      color: var(--cyan);
+      font-size: 10px;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .layer-list li strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── AHP SECTION ──────────────────────────────────────── */
+    #ahp { padding: 70px 0; }
+
+    .ahp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 36px;
+    }
+
+    .ahp-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .ahp-card h3 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .weight-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .weight-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 130px;
+      flex-shrink: 0;
+    }
+
+    .weight-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .weight-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s ease;
+    }
+
+    .bar-land { background: linear-gradient(90deg, #22d984, #00c8ff); }
+    .bar-flood { background: linear-gradient(90deg, #00c8ff, #004aad); }
+
+    .weight-val {
+      font-size: 11px;
+      color: var(--cyan);
+      font-weight: 700;
+      width: 42px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .cr-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(34,217,132,0.1);
+      border: 1px solid rgba(34,217,132,0.25);
+      padding: 6px 14px;
+      border-radius: 6px;
+    }
+
+    /* ── DATA SOURCES ─────────────────────────────────────── */
+    #data { padding: 70px 0; }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 36px;
+    }
+
+    .source-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .source-card:hover {
+      border-color: rgba(0,200,255,0.25);
+      transform: translateY(-2px);
+    }
+
+    .source-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .tag-land { background: rgba(34,217,132,0.15); color: var(--green); }
+    .tag-flood { background: rgba(0,200,255,0.15); color: var(--cyan); }
+    .tag-both { background: rgba(255,123,58,0.15); color: var(--orange); }
+
+    .source-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .source-origin {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 28px;
+      text-align: center;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--cyan);
+      margin-bottom: 10px;
+    }
+
+    .footer-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto 20px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--cyan); }
+
+    .footer-copy {
+      font-size: 12px;
+      color: rgba(122,160,188,0.5);
+    }
+
+    /* ── ANIMATIONS ───────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .stats-strip  { grid-template-columns: repeat(2, 1fr); }
+      .two-col      { grid-template-columns: 1fr; }
+      .ahp-grid     { grid-template-columns: 1fr; }
+      .source-grid  { grid-template-columns: repeat(2, 1fr); }
+      .nav-links    { display: none; }
+      .map-url      { display: none; }
+      .map-frame-wrap { padding-bottom: 80%; }
+    }
+
+    @media (max-width: 480px) {
+      .source-grid { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- BACKGROUND BLOBS -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">🌏 <span>CHT Multi-Hazard</span></a>
+      <ul class="nav-links">
+        <li><a href="#map">Live Map</a></li>
+        <li><a href="#methods">Methodology</a></li>
+        <li><a href="#ahp">AHP Weights</a></li>
+        <li><a href="#data">Data Sources</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrapper">
+      <div class="hero-badge">🛰 Google Earth Engine · MCDA · AHP</div>
+
+      <h1>Chattagram Peninsula<br/><em>Multi-Hazard Mapping</em></h1>
+
+      <p class="hero-sub">
+        Upazila-level Landslide Susceptibility &amp; Flood Risk Assessment
+        across Chattagram Division, Bangladesh — powered by multi-criteria
+        decision analysis and Analytic Hierarchy Process weighting.
+      </p>
+
+      <div class="hero-actions">
+        <a href="https://custom-mix-458510-j8.projects.earthengine.app/view/chattagram-peninsula-multi-hazard-mapping"
+           target="_blank" class="btn btn-primary">
+          🗺 Open Interactive Map
+        </a>
+        <a href="https://github.com/your-username/chattagram-multihazard-mapping"
+           target="_blank" class="btn btn-outline">
+          ⚙ View on GitHub
+        </a>
+      </div>
+
+      <div class="dev-notice">
+        🚧 Under active development — infrastructure exposure layers coming soon
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS STRIP -->
+  <div class="wrapper">
+    <div class="stats-strip reveal">
+      <div class="stat-item">
+        <div class="stat-num">47</div>
+        <div class="stat-label">Upazilas Mapped</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">13</div>
+        <div class="stat-label">Landslide Factors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">11</div>
+        <div class="stat-label">Flood Factors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">30m</div>
+        <div class="stat-label">Spatial Resolution</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP EMBED -->
+  <section id="map">
+    <div class="wrapper">
+      <p class="section-label reveal">Interactive Application</p>
+      <h2 class="section-title reveal">Explore the Risk Map</h2>
+      <p class="section-desc reveal">
+        Toggle between landslide and flood risk layers. Click any Upazila
+        to view risk distribution charts and census-based demographic data.
+      </p>
+
+      <div class="map-card reveal">
+        <div class="map-toolbar">
+          <div class="map-dots">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+          </div>
+          <div class="map-url">
+            custom-mix-458510-j8.projects.earthengine.app/view/chattagram-peninsula-multi-hazard-mapping
+          </div>
+          <a class="map-open-btn"
+             href="https://custom-mix-458510-j8.projects.earthengine.app/view/chattagram-peninsula-multi-hazard-mapping"
+             target="_blank">
+            ↗ Full screen
+          </a>
+        </div>
+
+        <div class="map-frame-wrap">
+          <div class="map-loading" id="mapLoading">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading Earth Engine App…</div>
+          </div>
+          <iframe
+            id="geeFrame"
+            src="https://custom-mix-458510-j8.projects.earthengine.app/view/chattagram-peninsula-multi-hazard-mapping"
+            allowfullscreen
+            loading="lazy"
+            title="Chattagram Peninsula Multi-Hazard Map">
+          </iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section id="methods">
+    <div class="wrapper">
+      <p class="section-label reveal">How It Works</p>
+      <h2 class="section-title reveal">Methodology</h2>
+      <p class="section-desc reveal">
+        Both assessments follow the same MCDA-AHP pipeline — each factor layer
+        is reclassified to a 1–5 risk scale, then combined using AHP-derived weights
+        in a weighted overlay.
+      </p>
+
+      <div class="two-col">
+        <div class="method-card reveal">
+          <div class="method-icon">🏔</div>
+          <h3>Landslide Susceptibility</h3>
+          <p style="font-size:13px;color:var(--text-muted);">13 conditioning factors covering terrain morphology, geology, vegetation, land use, proximity, and SAR-derived surface deformation.</p>
+          <ul class="layer-list">
+            <li><strong>Geology</strong> — USGS lithological units</li>
+            <li><strong>SAR Deformation</strong> — Sentinel-1 Max &amp; Mean</li>
+            <li><strong>Terrain</strong> — Elevation, Slope, Aspect (SRTM)</li>
+            <li><strong>Soil</strong> — BARC Map Portal</li>
+            <li><strong>Rainfall</strong> — CHIRPS climatology</li>
+            <li><strong>NDVI</strong> — Landsat 9</li>
+            <li><strong>LULC</strong> — Dynamic World</li>
+            <li><strong>Proximity</strong> — Rivers, Faults, Roads</li>
+          </ul>
+        </div>
+
+        <div class="method-card reveal">
+          <div class="method-icon">🌊</div>
+          <h3>Flood Risk Assessment</h3>
+          <p style="font-size:13px;color:var(--text-muted);">11 hydrological and terrain factors emphasising drainage conditions, water accumulation potential, and proximity to river networks.</p>
+          <ul class="layer-list">
+            <li><strong>TWI</strong> — Topographic Wetness Index (DEM)</li>
+            <li><strong>SPI</strong> — Stream Power Index (DEM)</li>
+            <li><strong>Curvature</strong> — DEM-derived</li>
+            <li><strong>Terrain</strong> — Elevation &amp; Slope (SRTM)</li>
+            <li><strong>Soil</strong> — BARC Map Portal</li>
+            <li><strong>Rainfall</strong> — CHIRPS climatology</li>
+            <li><strong>NDVI</strong> — Landsat 9</li>
+            <li><strong>LULC</strong> — Dynamic World</li>
+            <li><strong>Proximity</strong> — Rivers, Roads</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AHP WEIGHTS -->
+  <section id="ahp">
+    <div class="wrapper">
+      <p class="section-label reveal">Analytic Hierarchy Process</p>
+      <h2 class="section-title reveal">Factor Weights</h2>
+      <p class="section-desc reveal">
+        Pairwise comparison matrices were constructed for each model.
+        Both produced Consistency Ratios well below the 0.10 threshold.
+      </p>
+
+      <div class="ahp-grid">
+
+        <!-- LANDSLIDE WEIGHTS -->
+        <div class="ahp-card reveal">
+          <h3>🏔 Landslide Susceptibility Weights</h3>
+
+          <div class="weight-row"><span class="weight-name">Slope</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:100%"></div></div><span class="weight-val">19.04%</span></div>
+          <div class="weight-row"><span class="weight-name">Max SAR Deformation</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:70.8%"></div></div><span class="weight-val">13.48%</span></div>
+          <div class="weight-row"><span class="weight-name">Mean SAR Deformation</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:70.8%"></div></div><span class="weight-val">13.48%</span></div>
+          <div class="weight-row"><span class="weight-name">Dist. from Faults</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:61.8%"></div></div><span class="weight-val">11.76%</span></div>
+          <div class="weight-row"><span class="weight-name">Rainfall</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:51.9%"></div></div><span class="weight-val">9.89%</span></div>
+          <div class="weight-row"><span class="weight-name">Geology</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:44.5%"></div></div><span class="weight-val">8.47%</span></div>
+          <div class="weight-row"><span class="weight-name">Soil</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:32.9%"></div></div><span class="weight-val">6.27%</span></div>
+          <div class="weight-row"><span class="weight-name">Elevation</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:22.8%"></div></div><span class="weight-val">4.35%</span></div>
+          <div class="weight-row"><span class="weight-name">LULC</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:17.7%"></div></div><span class="weight-val">3.38%</span></div>
+          <div class="weight-row"><span class="weight-name">Dist. from Roads</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:17.4%"></div></div><span class="weight-val">3.32%</span></div>
+          <div class="weight-row"><span class="weight-name">Dist. from River</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:14.5%"></div></div><span class="weight-val">2.76%</span></div>
+          <div class="weight-row"><span class="weight-name">Aspect</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:10.6%"></div></div><span class="weight-val">2.02%</span></div>
+          <div class="weight-row"><span class="weight-name">NDVI</span><div class="weight-bar-wrap"><div class="weight-bar bar-land" style="width:9.4%"></div></div><span class="weight-val">1.79%</span></div>
+
+          <div class="cr-badge">✅ CR = 0.0246 — Consistent (CR &lt; 0.1)</div>
+        </div>
+
+        <!-- FLOOD WEIGHTS -->
+        <div class="ahp-card reveal">
+          <h3>🌊 Flood Risk Assessment Weights</h3>
+
+          <div class="weight-row"><span class="weight-name">Dist. from River</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:100%"></div></div><span class="weight-val">25.68%</span></div>
+          <div class="weight-row"><span class="weight-name">Rainfall</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:70.1%"></div></div><span class="weight-val">18.00%</span></div>
+          <div class="weight-row"><span class="weight-name">Elevation</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:49.6%"></div></div><span class="weight-val">12.75%</span></div>
+          <div class="weight-row"><span class="weight-name">Slope</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:31.2%"></div></div><span class="weight-val">8.01%</span></div>
+          <div class="weight-row"><span class="weight-name">Soil</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:31.0%"></div></div><span class="weight-val">7.96%</span></div>
+          <div class="weight-row"><span class="weight-name">SPI</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:28.3%"></div></div><span class="weight-val">7.27%</span></div>
+          <div class="weight-row"><span class="weight-name">TWI</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:24.5%"></div></div><span class="weight-val">6.30%</span></div>
+          <div class="weight-row"><span class="weight-name">LULC</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:16.7%"></div></div><span class="weight-val">4.30%</span></div>
+          <div class="weight-row"><span class="weight-name">Dist. from Roads</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:16.7%"></div></div><span class="weight-val">4.30%</span></div>
+          <div class="weight-row"><span class="weight-name">Curvature</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:11.0%"></div></div><span class="weight-val">2.83%</span></div>
+          <div class="weight-row"><span class="weight-name">NDVI</span><div class="weight-bar-wrap"><div class="weight-bar bar-flood" style="width:10.1%"></div></div><span class="weight-val">2.60%</span></div>
+
+          <div class="cr-badge">✅ CR = 0.0197 — Consistent (CR &lt; 0.1)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA SOURCES -->
+  <section id="data">
+    <div class="wrapper">
+      <p class="section-label reveal">Provenance</p>
+      <h2 class="section-title reveal">Data Sources</h2>
+      <p class="section-desc reveal">All datasets are openly available. Layers shared across both models are marked accordingly.</p>
+
+      <div class="source-grid">
+        <div class="source-card reveal"><span class="source-tag tag-land">Landslide</span><div class="source-name">Geology</div><div class="source-origin">USGS</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-land">Landslide</span><div class="source-name">SAR Deformation (Max &amp; Mean)</div><div class="source-origin">Sentinel-1 SAR</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Elevation / Slope / Aspect</div><div class="source-origin">SRTM DEM (NASA)</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Soil Types</div><div class="source-origin">BARC Map Portal</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Rainfall</div><div class="source-origin">CHIRPS</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">NDVI</div><div class="source-origin">Landsat 9</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Land Use / Land Cover</div><div class="source-origin">Dynamic World</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Distance from River</div><div class="source-origin">HydroSHEDS</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-land">Landslide</span><div class="source-name">Distance from Faults</div><div class="source-origin">NASA Fault Data</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Distance from Roads</div><div class="source-origin">OpenStreetMap (OSM)</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-flood">Flood</span><div class="source-name">TWI / SPI / Curvature</div><div class="source-origin">Derived from SRTM DEM</div></div>
+        <div class="source-card reveal"><span class="source-tag tag-both">Both</span><div class="source-name">Census Demographics</div><div class="source-origin">BBS Census 2022 — Table P35</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo">🌏 Chattagram Peninsula Multi-Hazard Mapping</div>
+      <p class="footer-desc">
+        MCDA-AHP based landslide susceptibility and flood risk assessment
+        for Chattagram Division, Bangladesh. Built with Google Earth Engine.
+      </p>
+      <div class="footer-links">
+        <a href="https://custom-mix-458510-j8.projects.earthengine.app/view/chattagram-peninsula-multi-hazard-mapping" target="_blank">Live App</a>
+        <a href="https://github.com/your-username/chattagram-multihazard-mapping" target="_blank">GitHub</a>
+        <a href="https://www.bbs.gov.bd" target="_blank">BBS Census Data</a>
+        <a href="https://earthengine.google.com" target="_blank">Google Earth Engine</a>
+      </div>
+      <p class="footer-copy">Data sources retain their original licenses · Built for research and academic purposes</p>
+    </div>
+  </footer>
+
+  <script>
+    // ── Hide loading overlay when iframe loads ─────────────
+    const frame   = document.getElementById('geeFrame');
+    const loading = document.getElementById('mapLoading');
+    frame.addEventListener('load', function() {
+      loading.classList.add('hidden');
+      setTimeout(() => loading.style.display = 'none', 600);
+    });
+
+    // ── Scroll reveal ──────────────────────────────────────
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry, i) {
+        if (entry.isIntersecting) {
+          setTimeout(function() {
+            entry.target.classList.add('visible');
+          }, i * 60);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    reveals.forEach(function(el) { observer.observe(el); });
+  </script>
+
+</body>
+</html>
